@@ -1,9 +1,12 @@
 <template>
   <div class="DrumGrid">
     <div class="grid-header">
-      Number of steps: <input type="number" min="5" max="16" v-model="numSteps">
-      <button v-on:click="startPlayer">Play</button>
+      <span>Number of steps: <input type="number" min="5" max="16" v-model="numSteps"></span>
+      <button v-on:click="startPlayer"><icon name="play"></icon></button>
       <button v-on:click="stopPlayer">Stop</button>
+      <div class="slider-container">
+        <input type="range" min="1" max="100" value="50" class="slider" id="volume-slider">
+      </div>
     </div>
     <div class="grid-main">
       <div class="step" v-for="ix1 in parseInt(numSteps)" v-bind:key="ix1">
@@ -52,9 +55,7 @@ export default {
       var self = this;
       this.stopPlayer();
       this.updatePlayer = setInterval(function () {
-          if (counter > self.numSteps) {
-            counter = 0;
-          } else {
+
             var sounds = self.tracks[counter].sounds;
             for (var i = 0; i < sounds.length; i++) {
               if (sounds[i].active) {
@@ -67,9 +68,16 @@ export default {
             self.tracks[counter].active = true;
             if (counter != 0) {
               self.tracks[counter-1].active = false;
+            } else {
+              self.tracks[self.numSteps-1].active = false;
             }
-            counter++;
-          }
+
+            if (counter >= self.numSteps-1) {
+              counter = 0;
+            } else {
+              counter++;
+            }
+          
       }, 200);
     },
     stopPlayer: function () {
@@ -139,4 +147,47 @@ export default {
   width:60px;
   display:inline-block;
 }
+
+/* SLIDER STYLE */
+.slider-container {
+    width: 100%; /* Width of the outside container */
+}
+
+/* The slider itself */
+.slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 5px;
+    border-radius: 20px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: opacity .15s ease-in-out;
+    transition: opacity .15s ease-in-out;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+    opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use webkit (Chrome, Opera, Safari, Edge) and moz (Firefox) to override default look) */ 
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #4CAF50;
+  cursor: pointer;
+}
+.slider::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: 0;
+  border-radius: 50%;
+  background: #4CAF50;
+  cursor: pointer;
+}
+
 </style>
