@@ -1,11 +1,18 @@
 <template>
   <div class="DrumGrid">
     <div class="grid-header">
-      <span>Number of steps: <input type="number" min="5" max="16" v-model="numSteps"></span>
-      <button v-on:click="startPlayer"><icon name="play"></icon></button>
-      <button v-on:click="stopPlayer">Stop</button>
-      <div class="slider-container">
-        <input type="range" min="1" max="100" value="50" class="slider" id="volume-slider">
+      <div class="grid-control btn-container">
+        <button v-on:click="startPlayer" v-bind:class="{ hidden: playing }"><icon name="play"></icon></button>
+        <button v-on:click="stopPlayer"  v-bind:class="{ hidden: !playing }"><icon name="stop"></icon></button>
+      </div>
+      <div class="grid-control input-container">
+        <span>Number of steps: </span><input type="number" min="5" max="16" v-model="numSteps">
+      </div>
+      <div class="grid-control slider-container">
+        <span>Volume: </span> <input type="range" min="0" max="100" v-model="volume" class="slider" id="volume-slider">
+      </div>
+      <div class="grid-control slider-container">
+        <span>BPM: </span> <input type="range" min="100" max="500" v-model="bpm" v-on:change="updateInterval" class="slider" id="bpm-slider">
       </div>
     </div>
     <div class="grid-main">
@@ -34,7 +41,11 @@ export default {
   data () {
     return {
       numSteps: 10,
-      tracks: []
+      tracks: [],
+      playing: false,
+      volume: 50,
+      bpm: 350,
+      counter: 0
     }
   },
   methods: {
@@ -49,38 +60,48 @@ export default {
         //this.$els.audio.play();
     },
     updatePlayer: function () {},
-    startPlayer: function () {
+    updateInterval: function () {
+      this.startPlayer(false)
+    },
+    startPlayer: function (stopPlayer=true) {
 
-      var counter = 0;
       var self = this;
-      this.stopPlayer();
+      if (stopPlayer) {
+        this.counter = 0;
+        this.stopPlayer();
+      } else
+        clearInterval(this.updatePlayer);
+      
+      this.playing = true;
       this.updatePlayer = setInterval(function () {
 
-            var sounds = self.tracks[counter].sounds;
+            var sounds = self.tracks[self.counter].sounds;
             for (var i = 0; i < sounds.length; i++) {
               if (sounds[i].active) {
                 var audio = new Audio("./static/sounds/" + sounds[i].name + ".wav");
-                audio.volume = 0.8;
+                audio.volume = self.volume/100;
                 audio.play();
               }
             }
 
-            self.tracks[counter].active = true;
-            if (counter != 0) {
-              self.tracks[counter-1].active = false;
+            self.tracks[self.counter].active = true;
+            if (self.counter != 0) {
+              self.tracks[self.counter-1].active = false;
             } else {
               self.tracks[self.numSteps-1].active = false;
             }
 
-            if (counter >= self.numSteps-1) {
-              counter = 0;
+            if (self.counter >= self.numSteps-1) {
+              self.counter = 0;
             } else {
-              counter++;
+              self.counter++;
             }
           
-      }, 200);
+      }, 600-self.bpm);
     },
     stopPlayer: function () {
+
+      this.playing = false;
       clearInterval(this.updatePlayer);
       for (var i = 0; i < this.tracks.length; i++) {
         this.tracks[i].active = false;
@@ -96,7 +117,18 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
+
 <style scoped>
+/* GENERAL */
+span {
+    font-family: Verdana;
+    /* letter-spacing: 2px; */
+    font-size: 0.80em;
+    font-weight: bold;
+}
+
+
+/* GRID */
 .DrumGrid {
   margin:0 auto;
   padding: 40px;
@@ -105,16 +137,19 @@ export default {
 .grid-header, .grid-main {
   max-width:1000px;
   margin:0px auto;
+  text-align:center;
 }
 .grid-header {
   background-color: rgb(32,34,36);
   height: 60px;
   box-sizing: border-box;
-  padding: 20px;
+  padding: 10px 20px;
   color:white;
+  text-align:left;
 }
 .grid-main {
   background-color: #121314;
+  padding: 20px 0px;
 }
 
 .track {
@@ -147,16 +182,43 @@ export default {
   width:60px;
   display:inline-block;
 }
+/* ===== CONTROLS ===== */
 
-/* SLIDER STYLE */
+
+.grid-control {
+  width: 30%;
+  min-width: 40px;
+  text-align: center;
+  display: inline-block;
+}
+.grid-control.btn-container {
+  width:40px;
+  text-align: left;
+}
+.grid-control .fa-icon {
+  color:white;
+}
+
+.grid-control button {
+  width: 40px;
+  height: 40px;
+  background-color: green;
+  border: 0px;
+  border-radius: 50%;
+}
+.grid-control button.hidden {
+  display:none;
+}
+
+
+/* SLIDER */
 .slider-container {
-    width: 100%; /* Width of the outside container */
+    /*width: 100%; /* Width of the outside container */
 }
 
 /* The slider itself */
 .slider {
     -webkit-appearance: none;
-    width: 100%;
     height: 5px;
     border-radius: 20px;
     background: #d3d3d3;
