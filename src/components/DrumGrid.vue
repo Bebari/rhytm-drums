@@ -16,17 +16,24 @@
       </div>
     </div>
     <div class="grid-main">
-      <div class="step" v-for="ix1 in parseInt(numSteps)" v-bind:key="ix1">
-        <template v-for="ix2 in tracks[ix1-1].sounds.length">
-          <div class="track" 
-              v-on:click="setTrackActive($event, tracks[ix1-1].sounds[ix2-1].name, ix1-1, ix2-1)" 
-              v-bind:key="ix1,ix2" 
-              v-bind:class="[tracks[ix1-1].sounds[ix2-1].name, {'active': tracks[ix1-1].sounds[ix2-1].active}]"></div>
-          <div class="player" 
-               v-bind:class="{'active': tracks[ix1-1].active}" 
-               v-if="ix2 < tracks[ix1-1].sounds.length" 
-               v-bind:key="ix2"></div>
-        </template>
+      <div class="grid-sidebar">
+         <template v-for="ix in tracks[0].sounds.length">
+           <div class="sidebar-container" v-bind:key="ix"><span>{{tracks[0].sounds[ix-1].name}}</span></div>
+         </template>
+      </div>
+      <div class="grid">
+        <div class="step" v-for="ix1 in parseInt(numSteps)" v-bind:key="ix1">
+          <template v-for="ix2 in tracks[ix1-1].sounds.length">
+            <div class="track" 
+                v-on:click="setTrackActive($event, tracks[ix1-1].sounds[ix2-1].name, ix1-1, ix2-1)" 
+                v-bind:key="ix1,ix2" 
+                v-bind:class="[tracks[ix1-1].sounds[ix2-1].name, {'active': tracks[ix1-1].sounds[ix2-1].active}]"></div>
+            <div class="player" 
+                v-bind:class="{'active': tracks[ix1-1].active}" 
+                v-if="ix2 < tracks[ix1-1].sounds.length" 
+                v-bind:key="ix2"></div>
+          </template>
+        </div>
       </div>
     </div>
   </div>
@@ -40,7 +47,7 @@ export default {
   //mixins: [VueHowler],
   data () {
     return {
-      numSteps: 10,
+      numSteps: 16,
       tracks: [],
       playing: false,
       volume: 50,
@@ -135,9 +142,9 @@ span {
 
 }
 .grid-header, .grid-main {
-  max-width:1000px;
+  max-width:1175px;
   margin:0px auto;
-  text-align:center;
+  text-align:left;
 }
 .grid-header {
   background-color: rgb(32,34,36);
@@ -145,7 +152,6 @@ span {
   box-sizing: border-box;
   padding: 10px 20px;
   color:white;
-  text-align:left;
 }
 .grid-main {
   background-color: #121314;
@@ -183,8 +189,6 @@ span {
   display:inline-block;
 }
 /* ===== CONTROLS ===== */
-
-
 .grid-control {
   width: 30%;
   min-width: 40px;
@@ -250,6 +254,24 @@ span {
   border-radius: 50%;
   background: #4CAF50;
   cursor: pointer;
+}
+
+
+/* SIDEBAR */
+.grid-sidebar {
+  width:200px;
+  float:left;
+}
+
+.grid {
+  width: 970px;
+  display:inline-block;
+}
+
+.sidebar-container {
+    background-color: #16181a;
+    height: 44px;
+    margin: 3px 10px 19px 10px
 }
 
 </style>
