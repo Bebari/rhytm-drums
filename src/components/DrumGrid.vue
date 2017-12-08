@@ -36,6 +36,17 @@
         </div>
       </div>
     </div>
+    <div class="grid-touch">
+      <div class="beatButtons">
+        <template v-for="sound in tracks[0].sounds.length">
+          <div class="beatButton" id="beatButton" 
+            v-bind:key="sound"
+            v-on:click="playSound($event, tracks[0].sounds[sound-1].name)">
+            {{ tracks[0].sounds[sound-1].name }}
+          </div>
+        </template>
+      </div>
+    </div>
   </div>
   
 </template>
@@ -113,12 +124,31 @@ export default {
       for (var i = 0; i < this.tracks.length; i++) {
         this.tracks[i].active = false;
       }
+    },
+    onKeyDown: function(e) {
+      console.log("click");
+        var sounds = this.tracks[0].sounds;
+            console.log(e.keyCode);
+            for(var i= 0; i < sounds.length; i++) {
+              if(e.keyCode == sounds[i].keyCode){
+                var audio = new Audio("./static/sounds/" + sounds[i].name + ".wav");
+                  audio.volume = 0.8;
+                  audio.play();
+              }  
+            }
+    },
+    playSound: function(event, soundName) {
+      console.log("taped");
+      var audio = new Audio("./static/sounds/" + soundName + ".wav");
+        audio.volume = 0.8;
+        audio.play();
     }
   },
   created: function() {
     this.$http.get('/static/data/tracks.json').then(function (response) {
       this.tracks = response.data;
     });
+    window.addEventListener('keydown', this.onKeyDown);
   }
 }
 </script>
@@ -141,7 +171,7 @@ span {
   padding: 40px;
 
 }
-.grid-header, .grid-main {
+.grid-header, .grid-main, .grid-touch {
   max-width:1175px;
   margin:0px auto;
   text-align:left;
@@ -153,9 +183,12 @@ span {
   padding: 10px 20px;
   color:white;
 }
-.grid-main {
+.grid-main, .grid-touch {
   background-color: #121314;
   padding: 20px 0px;
+}
+
+.grid-touch {
 }
 
 .track {
@@ -187,6 +220,21 @@ span {
 .step {
   width:60px;
   display:inline-block;
+}
+.beatButton {
+    border: 5px solid black;
+    width: 70px;
+    height: 70px;
+    margin: 10px 20px;
+    display:inline-block;
+    color:aliceblue;
+    background-color:#5e8345;
+}
+#BeatButton:active {
+    background-color:#232540;
+}
+.beatButtons {
+  margin-left: 200px;
 }
 /* ===== CONTROLS ===== */
 .grid-control {

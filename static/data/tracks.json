@@ -4,35 +4,43 @@
 			"sounds": [
 				{ 
 					"active": false,
-					"name": "Clave01" 
+					"name": "Clave01",
+					"keyCode": "65" 
 				},
 				{ 
 					"active": false,
-					"name": "Clave02" 
+					"name": "Clave02",
+					"keyCode": "83"
 				},
 				{ 
 					"active": false,
-					"name": "Cowbell" 
+					"name": "Cowbell",
+					"keyCode": "68" 
 				},
 				{ 
 					"active": false,
-					"name": "Kick01" 
+					"name": "Kick01",
+					"keyCode": "70"  
 				},
 				{ 
 					"active": false,
-					"name": "Rim01" 
+					"name": "Rim01",
+					"keyCode": "74" 
 				},
 				{ 
 					"active": false,
-					"name": "Rim02" 
+					"name": "Rim02",
+					"keyCode": "75" 
 				},
 				{ 
 					"active": false,
-					"name": "Snare01" 
+					"name": "Snare01",
+					"keyCode": "76"
 				},
 				{ 
 					"active": false,
-					"name": "Snare02" 
+					"name": "Snare02",
+					"keyCode": "186"
 				}]
 			},
 			{
