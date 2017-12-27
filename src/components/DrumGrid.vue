@@ -1,17 +1,20 @@
 <template>
   <div class="DrumGrid">
     <div class="grid-header">
-      <div class="grid-control btn-container">
-        <button v-on:click="startPlayer" v-bind:class="{ hidden: playing }"><icon name="play"></icon></button>
-        <button v-on:click="stopPlayer"  v-bind:class="{ hidden: !playing }"><icon name="stop"></icon></button>
+      <div class="grid-control col-1">
+        <button title="Play" v-on:click="startPlayer" v-bind:class="{ hidden: playing }"><icon name="play"></icon></button>
+        <button title="Stop" v-on:click="stopPlayer"  v-bind:class="{ hidden: !playing }"><icon name="stop"></icon></button>
       </div>
-      <div class="grid-control input-container">
+      <div class="grid-control col-2">
+        <button title="Clear Grid" v-on:click="clearGrid"><icon name="ban"></icon></button>
+      </div>
+      <div class="grid-control input col-4">
         <span>Number of steps: </span><input type="number" min="5" max="16" v-model="numSteps">
       </div>
-      <div class="grid-control slider-container">
+      <div class="grid-control input col-4">
         <span>Volume: </span> <input type="range" min="0" max="100" v-model="volume" class="slider" id="volume-slider">
       </div>
-      <div class="grid-control slider-container">
+      <div class="grid-control input col-4">
         <span>BPM: </span> <input type="range" min="100" max="500" v-model="bpm" v-on:change="updateInterval" class="slider" id="bpm-slider">
       </div>
     </div>
@@ -39,7 +42,7 @@
     <div class="grid-touch">
       <div class="beatButtons">
         <template v-for="sound in tracks[0].sounds.length">
-          <div class="beatButton" id="beatButton" 
+          <div class="beatButton" id="beatButton"
             v-bind:key="sound"
             v-on:click="playSound($event, tracks[0].sounds[sound-1].name)">
             {{ tracks[0].sounds[sound-1].name }}
@@ -63,7 +66,8 @@ export default {
       playing: false,
       volume: 50,
       bpm: 350,
-      counter: 0
+      counter: 0,
+      keyCodes: null
     }
   },
   methods: {
@@ -72,10 +76,14 @@ export default {
         var isActive = this.tracks[ix1].sounds[ix2].active;
         this.tracks[ix1].sounds[ix2].active = !isActive;
 
-        var audio = new Audio("./static/sounds/" + soundName + ".wav");
-        audio.volume = 0.8;
-        audio.play();
-        //this.$els.audio.play();
+        this.playSound(null, soundName);
+    },
+    clearGrid: function() {
+      this.tracks.forEach(function(track) {
+        track.sounds.forEach(function(sound){
+          sound.active = false;
+        });
+      });
     },
     updatePlayer: function () {},
     updateInterval: function () {
@@ -96,9 +104,7 @@ export default {
             var sounds = self.tracks[self.counter].sounds;
             for (var i = 0; i < sounds.length; i++) {
               if (sounds[i].active) {
-                var audio = new Audio("./static/sounds/" + sounds[i].name + ".wav");
-                audio.volume = self.volume/100;
-                audio.play();
+                self.playSound(null, sounds[i].name);
               }
             }
 
@@ -126,25 +132,28 @@ export default {
       }
     },
     onKeyDown: function(e) {
-      console.log("click");
+      console.log(this.keyCodes[e.keyCode]);
+      //console.log("click");
         var sounds = this.tracks[0].sounds;
-            console.log(e.keyCode);
+            //console.log(e.keyCode);
             for(var i= 0; i < sounds.length; i++) {
               if(e.keyCode == sounds[i].keyCode){
-                var audio = new Audio("./static/sounds/" + sounds[i].name + ".wav");
-                  audio.volume = 0.8;
-                  audio.play();
+                this.playSound(null, sounds[i].name);
               }  
             }
     },
     playSound: function(event, soundName) {
-      console.log("taped");
-      var audio = new Audio("./static/sounds/" + soundName + ".wav");
-        audio.volume = 0.8;
-        audio.play();
+      //console.log("taped");
+      var audio = new Audio("/static/sounds/" + soundName + ".wav");
+      audio.volume = this.volume/100;
+      audio.play();
     }
   },
   created: function() {
+    this.$http.get('/static/data/keyCodes.json').then(function (response) {
+      this.keyCodes = response.data;
+    });
+
     this.$http.get('/static/data/tracks.json').then(function (response) {
       this.tracks = response.data;
     });
@@ -164,6 +173,27 @@ span {
     font-weight: bold;
 }
 
+/* 16 - column layout */
+[class*="col-"] {
+    float: left;
+}
+
+.col-1 {width: 6.25%;}
+.col-2 {width: 12.50%;}
+.col-3 {width: 18.75%;}
+.col-4 {width: 25%;}
+.col-5 {width: 31.25%;}
+.col-6 {width: 37.50%;}
+.col-7 {width: 43.75%;}
+.col-8 {width: 50%;}
+.col-9 {width: 56.25%;}
+.col-10 {width: 62.50%;}
+.col-11 {width: 68.75%;}
+.col-12 {width: 75%;}
+.col-13 {width: 81.25%;}
+.col-14 {width: 87.50%;}
+.col-15 {width: 93.75%;}
+.col-16 {width: 100%;}
 
 /* GRID */
 .DrumGrid {
@@ -186,9 +216,6 @@ span {
 .grid-main, .grid-touch {
   background-color: #121314;
   padding: 20px 0px;
-}
-
-.grid-touch {
 }
 
 .track {
@@ -238,17 +265,15 @@ span {
 }
 /* ===== CONTROLS ===== */
 .grid-control {
-  width: 30%;
-  min-width: 40px;
   text-align: center;
-  display: inline-block;
 }
-.grid-control.btn-container {
-  width:40px;
-  text-align: left;
-}
+
 .grid-control .fa-icon {
   color:white;
+}
+
+.grid-control.input {
+  padding-top:10px;
 }
 
 .grid-control button {
@@ -264,10 +289,6 @@ span {
 
 
 /* SLIDER */
-.slider-container {
-    /*width: 100%; /* Width of the outside container */
-}
-
 /* The slider itself */
 .slider {
     -webkit-appearance: none;
@@ -318,8 +339,8 @@ span {
 
 .sidebar-container {
     background-color: #16181a;
-    height: 44px;
-    margin: 3px 10px 19px 10px
+    margin: 3px 10px 19px 10px;
+    padding: 13px 10px;
 }
 
 </style>
