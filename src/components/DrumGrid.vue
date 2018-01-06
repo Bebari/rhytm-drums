@@ -5,8 +5,11 @@
         <button title="Play" v-on:click="startPlayer" v-bind:class="{ hidden: playing }"><icon name="play"></icon></button>
         <button title="Stop" v-on:click="stopPlayer"  v-bind:class="{ hidden: !playing }"><icon name="stop"></icon></button>
       </div>
-      <div class="grid-control col-2">
-        <button title="Clear Grid" v-on:click="clearGrid"><icon name="ban"></icon></button>
+      <div class="grid-control col-1">
+        <button title="Clear Grid" ref="clearGridBtn" id="clearGridBtn" v-on:click="clearGrid()"><icon name="ban"></icon></button>
+      </div>
+      <div class="grid-control col-1">
+        <span>Total Diff: {{totalDiff}}</span>
       </div>
       <div class="grid-control input col-4">
         <span>Number of steps: </span><input type="number" min="5" max="16" v-model="numSteps">
@@ -15,7 +18,7 @@
         <span>Volume: </span> <input type="range" min="0" max="100" v-model="volume" class="slider" id="volume-slider">
       </div>
       <div class="grid-control input col-4">
-        <span>BPM: </span> <input type="range" min="100" max="500" v-model="bpm" v-on:change="updateInterval" class="slider" id="bpm-slider">
+        <span>BPM: </span> <input type="range" min="0" max="400" v-model="bpm" v-on:change="updateInterval" class="slider" id="bpm-slider">
       </div>
     </div>
     <div class="grid-main">
@@ -61,13 +64,21 @@ export default {
   //mixins: [VueHowler],
   data () {
     return {
-      numSteps: 16,
+      numSteps: 7,
       tracks: [],
       playing: false,
       volume: 50,
-      bpm: 350,
+      bpm: 0,
+      bpmThreshold: 600,
       counter: 0,
-      keyCodes: null
+      keyCodes: null,
+      playingTimestamp: 0,
+      pressedTimestampDiff: 0,
+      totalDiff: 0,
+      activeSounds: [],
+      repetitions: 1,
+      repetitionsRemaining: this.repetitions,
+      playMode: 1 //1 - Play Mode, 0 - Free Mode
     }
   },
   methods: {
@@ -84,30 +95,27 @@ export default {
           sound.active = false;
         });
       });
+      this.$refs.clearGridBtn.blur();      
     },
     updatePlayer: function () {},
     updateInterval: function () {
-      this.startPlayer(false)
+      if(this.playing)
+        this.startPlayer(false)
     },
     startPlayer: function (stopPlayer=true) {
 
-      var self = this;
       if (stopPlayer) {
-        this.counter = 0;
+        this.totalDiff = 0;
         this.stopPlayer();
       } else
         clearInterval(this.updatePlayer);
       
-      this.playing = true;
+      var bpmInterval = this.bpmThreshold-this.bpm;
+      this.playing = true; //TODO: some fix for pressing too early
+      var self = this;
       this.updatePlayer = setInterval(function () {
-
+            
             var sounds = self.tracks[self.counter].sounds;
-            for (var i = 0; i < sounds.length; i++) {
-              if (sounds[i].active) {
-                self.playSound(null, sounds[i].name);
-              }
-            }
-
             self.tracks[self.counter].active = true;
             if (self.counter != 0) {
               self.tracks[self.counter-1].active = false;
@@ -115,16 +123,50 @@ export default {
               self.tracks[self.numSteps-1].active = false;
             }
 
-            if (self.counter >= self.numSteps-1) {
+            self.playingTimestamp = Date.now() + bpmInterval/2; //time when sound will play
+
+            for (var i = 0; i < sounds.length; i++) {
+              if (sounds[i].active) { 
+                if (!self.playMode) {
+                  var sn = sounds[i].name;
+                  setTimeout(function() {
+                    self.playSound(null, sn);
+                  }, bpmInterval/2); //play sound at about half of the interval duration
+                } else {
+                  //console.log("push")
+                  self.activeSounds.push(i);
+                }
+              }
+            }
+
+            if (self.playMode) {
+              setTimeout(function() {
+                  if(self.pressedTimestampDiff == 0) //user did not press during interval
+                    self.totalDiff += bpmInterval
+                  else
+                    self.totalDiff += Math.abs(self.pressedTimestampDiff);
+                  self.pressedTimestampDiff = 0;
+                  self.activeSounds = [];
+                  //console.log("clear");
+              }, bpmInterval-10); //-10 to ensure execution before interval
+            }
+            //console.log("len " + self.activeSounds.length);
+            if (self.counter >= self.numSteps-1) { //if end of grid
               self.counter = 0;
+              if (self.playMode) {
+                self.repetitionsRemaining--;
+                if (self.repetitionsRemaining == 0) //TODO: bugfix for last track indicator (might need to wrap into timeout)
+                  self.stopPlayer();
+              }
             } else {
               self.counter++;
             }
           
-      }, 600-self.bpm);
+      }, bpmInterval); //goes from 200 to 600 based on bpmThreshold (TODO: might want to set BPM for each track)
     },
     stopPlayer: function () {
-
+      this.repetitionsRemaining = this.repetitions;
+      this.counter = 0;
       this.playing = false;
       clearInterval(this.updatePlayer);
       for (var i = 0; i < this.tracks.length; i++) {
@@ -132,15 +174,25 @@ export default {
       }
     },
     onKeyDown: function(e) {
-      console.log(this.keyCodes[e.keyCode]);
-      //console.log("click");
-        var sounds = this.tracks[0].sounds;
-            //console.log(e.keyCode);
-            for(var i= 0; i < sounds.length; i++) {
-              if(e.keyCode == sounds[i].keyCode){
-                this.playSound(null, sounds[i].name);
-              }  
-            }
+
+      var sounds = this.tracks[0].sounds;
+
+      if (this.playMode && this.playing) {
+        if (this.pressedTimestampDiff != 0)
+          return; //if pressed more than once during interval
+        //console.log(this.activeSounds.length);
+        var sIx = sounds.findIndex(s => s.keyCode == e.keyCode);
+        if(this.activeSounds.includes(sIx)) { //TODO: currently works when AT LEAST one correct key
+          this.pressedTimestampDiff = this.playingTimestamp - Date.now(); //correct key
+        } else
+          this.pressedTimestampDiff = (this.bpmThreshold-this.bpm); //wrong key 
+      }
+
+      for(var i= 0; i < sounds.length; i++) {
+        if(e.keyCode == sounds[i].keyCode){
+          this.playSound(null, sounds[i].name);
+        }  
+      }
     },
     playSound: function(event, soundName) {
       //console.log("taped");
@@ -158,6 +210,7 @@ export default {
       this.tracks = response.data;
     });
     window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('keyup', this.onKeyUp);
   }
 }
 </script>
@@ -172,6 +225,8 @@ span {
     font-size: 0.80em;
     font-weight: bold;
 }
+
+button:focus { outline:none }
 
 /* 16 - column layout */
 [class*="col-"] {
@@ -282,6 +337,11 @@ span {
   background-color: green;
   border: 0px;
   border-radius: 50%;
+}
+#clearGridBtn { background-color: #525252; }
+#clearGridBtn:focus {
+  outline:none;
+  background-color:green;
 }
 .grid-control button.hidden {
   display:none;
