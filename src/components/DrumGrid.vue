@@ -1,24 +1,43 @@
 <template>
   <div class="DrumGrid">
+    <div class="game-header">
+      <div class="col-8">
+        <div class="game-control col-16">
+          <span>Select Track: </span>
+          <select><option>test</option></select>
+          <button title="Load Track">Load Track</button>
+        </div>
+        <div class="game-control col-16">
+          <button title="Play Mode" v-on:click="playMode = true" v-bind:class="{ hidden: playMode }">PLAY Mode</button>
+          <button title="Free Mode" v-on:click="playMode = false" v-bind:class="{ hidden: !playMode }">FREE Mode</button>
+        </div>
+      </div>
+      <div class="col-8">
+        <div class="col-16">
+          <span>Top Score: {{totalDiff}}</span><br />
+          <span>Current Score: {{totalDiff}}</span>
+        </div>
+        <div class="col-16">
+          <textarea ref="scoreLog" readonly class="event-log"></textarea>
+        </div>
+      </div>
+    </div>
     <div class="grid-header">
       <div class="grid-control col-1">
         <button title="Play" v-on:click="startPlayer" v-bind:class="{ hidden: playing }"><icon name="play"></icon></button>
         <button title="Stop" v-on:click="stopPlayer"  v-bind:class="{ hidden: !playing }"><icon name="stop"></icon></button>
       </div>
       <div class="grid-control col-1">
-        <button title="Clear Grid" ref="clearGridBtn" id="clearGridBtn" v-on:click="clearGrid()"><icon name="ban"></icon></button>
-      </div>
-      <div class="grid-control col-1">
-        <span>Total Diff: {{totalDiff}}</span>
+        <button title="Clear Grid" ref="clearGridBtn" id="clearGridBtn" v-on:click="clearGrid()" :disabled="playMode"><icon name="ban"></icon></button>
       </div>
       <div class="grid-control input col-4">
-        <span>Number of steps: </span><input type="number" min="5" max="16" v-model="numSteps">
+        <span>Number of steps: </span><input type="number" min="5" max="16" v-model="numSteps" :disabled="playMode">
       </div>
-      <div class="grid-control input col-4">
+      <div class="grid-control input col-5">
         <span>Volume: </span> <input type="range" min="0" max="100" v-model="volume" class="slider" id="volume-slider">
       </div>
-      <div class="grid-control input col-4">
-        <span>BPM: </span> <input type="range" min="0" max="400" v-model="bpm" v-on:change="updateInterval" class="slider" id="bpm-slider">
+      <div class="grid-control input col-5">
+        <span>BPM: </span> <input type="range" min="0" max="400" v-model="bpm" v-on:change="updateInterval" class="slider" id="bpm-slider" :disabled="playMode">
       </div>
     </div>
     <div class="grid-main">
@@ -84,6 +103,9 @@ export default {
   methods: {
     setTrackActive: function(event, soundName, ix1, ix2) {
         //event.target.classList.toggle("active");
+        if(this.playMode)
+          return;
+
         var isActive = this.tracks[ix1].sounds[ix2].active;
         this.tracks[ix1].sounds[ix2].active = !isActive;
 
@@ -141,9 +163,10 @@ export default {
 
             if (self.playMode) {
               setTimeout(function() {
-                  if(self.pressedTimestampDiff == 0) //user did not press during interval
+                  if(self.pressedTimestampDiff == 0) { //user did not press during interval
                     self.totalDiff += bpmInterval
-                  else
+                    self.$refs.scoreLog.value += "Missed!\\\n";
+                  } else
                     self.totalDiff += Math.abs(self.pressedTimestampDiff);
                   self.pressedTimestampDiff = 0;
                   self.activeSounds = [];
@@ -184,8 +207,11 @@ export default {
         var sIx = sounds.findIndex(s => s.keyCode == e.keyCode);
         if(this.activeSounds.includes(sIx)) { //TODO: currently works when AT LEAST one correct key
           this.pressedTimestampDiff = this.playingTimestamp - Date.now(); //correct key
-        } else
+          this.$refs.scoreLog.value += "Correct! Diff: " + this.pressedTimestampDiff + "\\\n";
+        } else {
           this.pressedTimestampDiff = (this.bpmThreshold-this.bpm); //wrong key 
+          this.$refs.scoreLog.value += "Wrong Key! \\\n";
+        }
       }
 
       for(var i= 0; i < sounds.length; i++) {
@@ -224,9 +250,26 @@ span {
     /* letter-spacing: 2px; */
     font-size: 0.80em;
     font-weight: bold;
+    color: white;
+}
+
+button.hidden {
+  display:none;
 }
 
 button:focus { outline:none }
+
+.DrumGrid {
+  margin:0 auto;
+  padding: 10px 40px 40px 40px;
+
+}
+
+.grid-header, .grid-main, .grid-touch, .game-header {
+  max-width:1175px;
+  margin:0px auto;
+  text-align:left;
+}
 
 /* 16 - column layout */
 [class*="col-"] {
@@ -250,17 +293,29 @@ button:focus { outline:none }
 .col-15 {width: 93.75%;}
 .col-16 {width: 100%;}
 
-/* GRID */
-.DrumGrid {
-  margin:0 auto;
-  padding: 40px;
+/* GAME HEADER */
+.game-header {
+  background-color: rgb(32,34,36);
+  margin-bottom: 20px;
+  height: 160px;
+  border: 1px solid;
+  box-sizing:border-box;
+  padding:10px; 
+}
 
+.game-header textarea {
+  resize: none;
+  width: 100%;
+  height: 100px;
+  margin-top: 5px;
+  box-sizing: border-box;
 }
-.grid-header, .grid-main, .grid-touch {
-  max-width:1175px;
-  margin:0px auto;
-  text-align:left;
+
+.game-control {
+  margin-bottom:5px;
 }
+
+/* GRID */
 .grid-header {
   background-color: rgb(32,34,36);
   height: 60px;
@@ -343,10 +398,6 @@ button:focus { outline:none }
   outline:none;
   background-color:green;
 }
-.grid-control button.hidden {
-  display:none;
-}
-
 
 /* SLIDER */
 /* The slider itself */
