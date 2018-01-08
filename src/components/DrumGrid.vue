@@ -95,8 +95,9 @@ export default {
       pressedTimestampDiff: 0,
       totalDiff: 0,
       activeSounds: [],
-      repetitions: 1,
+      repetitions: 2, //+1 for preperation phaes
       repetitionsRemaining: this.repetitions,
+      prepPhase: true,
       playMode: 1 //1 - Play Mode, 0 - Free Mode
     }
   },
@@ -117,7 +118,8 @@ export default {
           sound.active = false;
         });
       });
-      this.$refs.clearGridBtn.blur();      
+      this.$refs.clearGridBtn.blur();
+      this.$refs.scoreLog.value = "";   
     },
     updatePlayer: function () {},
     updateInterval: function () {
@@ -127,6 +129,7 @@ export default {
     startPlayer: function (stopPlayer=true) {
 
       if (stopPlayer) {
+        this.$refs.scoreLog.value = "";
         this.totalDiff = 0;
         this.stopPlayer();
       } else
@@ -161,8 +164,8 @@ export default {
               }
             }
 
-            if (self.playMode) {
-              setTimeout(function() {
+            if (self.playMode && !self.prepPhase) {
+              setTimeout(function() {                 
                   if(self.pressedTimestampDiff == 0) { //user did not press during interval
                     self.totalDiff += bpmInterval
                     self.$refs.scoreLog.value += "Missed!\\\n";
@@ -170,16 +173,18 @@ export default {
                     self.totalDiff += Math.abs(self.pressedTimestampDiff);
                   self.pressedTimestampDiff = 0;
                   self.activeSounds = [];
-                  //console.log("clear");
               }, bpmInterval-10); //-10 to ensure execution before interval
             }
             //console.log("len " + self.activeSounds.length);
             if (self.counter >= self.numSteps-1) { //if end of grid
               self.counter = 0;
               if (self.playMode) {
-                self.repetitionsRemaining--;
-                if (self.repetitionsRemaining == 0) //TODO: bugfix for last track indicator (might need to wrap into timeout)
-                  self.stopPlayer();
+                setTimeout(function() {
+                  self.repetitionsRemaining--;
+                  self.prepPhase = false;
+                  if (self.repetitionsRemaining == 0)
+                    self.stopPlayer();
+                },bpmInterval-10);
               }
             } else {
               self.counter++;
@@ -187,10 +192,11 @@ export default {
           
       }, bpmInterval); //goes from 200 to 600 based on bpmThreshold (TODO: might want to set BPM for each track)
     },
-    stopPlayer: function () {
+    stopPlayer: function () { 
       this.repetitionsRemaining = this.repetitions;
       this.counter = 0;
       this.playing = false;
+      this.prepPhase = true;
       clearInterval(this.updatePlayer);
       for (var i = 0; i < this.tracks.length; i++) {
         this.tracks[i].active = false;
@@ -200,7 +206,7 @@ export default {
 
       var sounds = this.tracks[0].sounds;
 
-      if (this.playMode && this.playing) {
+      if (this.playMode && this.playing && !this.prepPhase) {
         if (this.pressedTimestampDiff != 0)
           return; //if pressed more than once during interval
         //console.log(this.activeSounds.length);
