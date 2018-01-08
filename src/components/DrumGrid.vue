@@ -4,8 +4,16 @@
       <div class="col-8">
         <div class="game-control col-16">
           <span>Select Track: </span>
-          <select><option>test</option></select>
-          <button title="Load Track">Load Track</button>
+          <select v-model="selected_beat">
+            <option>test</option>
+            <option v-for="beat in beats" v-bind:value="beat.id" v-bind:key="beat"> {{ beat.name }} </option>
+          </select>
+          <button title="Load Track" v-on:click="loadBeat">Load Track</button>
+        </div>
+        <div class="game-control col-16">
+          <span>Track name: </span>
+          <input v-model="beat_name">
+          <button title="Save Track" v-on:click="saveBeat">Save Track</button>
         </div>
         <div class="game-control col-16">
           <button title="Play Mode" v-on:click="playMode = true" v-bind:class="{ hidden: playMode }">PLAY Mode</button>
@@ -98,7 +106,15 @@ export default {
       repetitions: 2, //+1 for preperation phaes
       repetitionsRemaining: this.repetitions,
       prepPhase: true,
-      playMode: 1 //1 - Play Mode, 0 - Free Mode
+      playMode: 1, //1 - Play Mode, 0 - Free Mode
+      // API data
+      user_id: 1,
+      beat_name: "",
+      selected_beat: 0,
+      beats: [],
+      currentScore: 0,
+      topScore: 0,
+      topScores: []
     }
   },
   methods: {
@@ -231,7 +247,51 @@ export default {
       var audio = new Audio("/static/sounds/" + soundName + ".wav");
       audio.volume = this.volume/100;
       audio.play();
-    }
+    },
+    loadBeat: function(event) {
+      this.$http.get('http://drums.test/api/beats/'+this.selected_beat).then(function (response) {
+        this.beat_name = response.data.name;
+        this.numSteps = response.data.steps;
+        this.bpm = response.data.bpm;
+        this.repetitions = response.data.repeats; 
+        this.tracks = JSON.parse(response.data.layout);
+      });
+    },
+    saveBeat: function(event) {
+      var beat = {
+        "name":this.beat_name,
+        "steps":this.numSteps,
+        "bpm":this.bpm,
+        "repeats":this.repetitions,
+        "layout":this.tracks}
+
+      this.$http.post('http://drums.test/api/beats', beat).then(function (response) {
+        console.log(response);
+      });
+    },
+    saveScore: function(event) {
+      this.$http.get('http://drums.test/api/scores/'+this.selected_beat+'/'+this.user_id).then(function (response) {
+        this.topScore = response.data;
+      });
+
+      if(this.currentScore > this.topScore) {
+        // Popup: Congrats, you have a new top score!
+        var score_json = '{"beat_id":'+this.selected_beat+',"user_id":'+this.user_id+',"score:"'+this.currentScore+'}';
+          this.$http.post('http://drums.test/api/scores', score_json).then(function (response) {
+            console.log(response);
+          });
+      }
+    },
+    getScore: function(event) {
+      this.$http.get('http://drums.test/api/scores/'+this.selected_beat+'/'+this.user_id).then(function (response) {
+        this.topScore = response.data;
+      });
+    },
+    getTopScores: function(event) {
+      this.$http.get('http://drums.test/api/scores/'+this.selected_beat).then(function (response) {
+        this.topScores = response.data;
+      });
+    },
   },
   created: function() {
     this.$http.get('/static/data/keyCodes.json').then(function (response) {
@@ -240,6 +300,10 @@ export default {
 
     this.$http.get('/static/data/tracks.json').then(function (response) {
       this.tracks = response.data;
+    });
+
+    this.$http.get('http://drums.test/api/beats').then(function (response) {
+      this.beats = response.data;
     });
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
