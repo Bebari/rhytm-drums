@@ -16,9 +16,13 @@
           <button title="Save Track" v-on:click="saveBeat">Save Track</button>
         </div>
         <div class="game-control col-16">
-          <button title="Play Mode" v-on:click="playMode = true" v-bind:class="{ hidden: playMode }">PLAY Mode</button>
-          <button title="Free Mode" v-on:click="playMode = false" v-bind:class="{ hidden: !playMode }">FREE Mode</button>
+          <span>Switch Mode: </span>
+          <button title="Set to Play Mode" v-on:click="playMode = true" v-bind:class="{ hidden: playMode }">FREE Mode</button>
+          <button title="Set to Free Mode" v-on:click="playMode = false" v-bind:class="{ hidden: !playMode }">PLAY Mode</button>
         </div>
+        <span class="message" v-if="playMode">{{messages[playPhase]}}</span>
+        <span v-if="playPhase > 2"> Repetitions remaining: {{repetitionsRemaining}}</span>
+        <span v-if="!playMode">Practice your beats or create some new ones.</span>
       </div>
       <div class="col-8">
         <div class="col-16">
@@ -95,7 +99,7 @@ export default {
       tracks: [],
       playing: false,
       volume: 50,
-      bpm: 0,
+      bpm: 100,
       bpmThreshold: 600,
       counter: 0,
       keyCodes: null,
@@ -103,10 +107,14 @@ export default {
       pressedTimestampDiff: 0,
       totalDiff: 0,
       activeSounds: [],
-      repetitions: 2, //+1 for preperation phaes
+      repetitions: 2,
       repetitionsRemaining: this.repetitions,
-      prepPhase: true,
-      playMode: 1, //1 - Play Mode, 0 - Free Mode
+      playPhase: 0,
+      playMode: false, //1 - Play Mode, 0 - Free Mode
+      messages: ["Press PLAY button when ready.",
+                 "Preparation phase. Listen up!",
+                 "Preparation phase. Get ready to play!",
+                 "Go, Go, Go, ..."],
       // API data
       user_id: 1,
       beat_name: "",
@@ -148,6 +156,8 @@ export default {
         this.$refs.scoreLog.value = "";
         this.totalDiff = 0;
         this.stopPlayer();
+        if (this.playMode)
+          this.playPhase++;
       } else
         clearInterval(this.updatePlayer);
       
@@ -168,19 +178,18 @@ export default {
 
             for (var i = 0; i < sounds.length; i++) {
               if (sounds[i].active) { 
-                if (!self.playMode) {
-                  var sn = sounds[i].name;
+                if (self.playPhase < 2) {
+                  var snd = sounds[i].name;
                   setTimeout(function() {
-                    self.playSound(null, sn);
+                    self.playSound(null, snd);
                   }, bpmInterval/2); //play sound at about half of the interval duration
                 } else {
-                  //console.log("push")
                   self.activeSounds.push(i);
                 }
               }
             }
 
-            if (self.playMode && !self.prepPhase) {
+            if (self.playPhase > 2) { //end of preparations
               setTimeout(function() {                 
                   if(self.pressedTimestampDiff == 0) { //user did not press during interval
                     self.totalDiff += bpmInterval
@@ -194,12 +203,14 @@ export default {
             //console.log("len " + self.activeSounds.length);
             if (self.counter >= self.numSteps-1) { //if end of grid
               self.counter = 0;
-              if (self.playMode) {
+              if (self.playMode) 
+                self.playPhase++;
+
+              if (self.playPhase > 2) {
                 setTimeout(function() {
-                  self.repetitionsRemaining--;
-                  self.prepPhase = false;
                   if (self.repetitionsRemaining == 0)
                     self.stopPlayer();
+                  self.repetitionsRemaining--;
                 },bpmInterval-10);
               }
             } else {
@@ -211,8 +222,8 @@ export default {
     stopPlayer: function () { 
       this.repetitionsRemaining = this.repetitions;
       this.counter = 0;
+      this.playPhase = 0;
       this.playing = false;
-      this.prepPhase = true;
       clearInterval(this.updatePlayer);
       for (var i = 0; i < this.tracks.length; i++) {
         this.tracks[i].active = false;
@@ -221,8 +232,7 @@ export default {
     onKeyDown: function(e) {
 
       var sounds = this.tracks[0].sounds;
-
-      if (this.playMode && this.playing && !this.prepPhase) {
+      if (this.playMode && this.playPhase > 2) {
         if (this.pressedTimestampDiff != 0)
           return; //if pressed more than once during interval
         //console.log(this.activeSounds.length);
