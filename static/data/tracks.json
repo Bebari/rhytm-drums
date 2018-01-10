@@ -25,22 +25,22 @@
 				{ 
 					"active": false,
 					"name": "Rim01",
-					"keyCode": "74" 
+					"keyCode": "73" 
 				},
 				{ 
 					"active": false,
 					"name": "Rim02",
-					"keyCode": "75" 
+					"keyCode": "74" 
 				},
 				{ 
 					"active": false,
 					"name": "Snare01",
-					"keyCode": "76"
+					"keyCode": "75"
 				},
 				{ 
 					"active": false,
 					"name": "Snare02",
-					"keyCode": "186"
+					"keyCode": "76"
 				}]
 			},
 			{
