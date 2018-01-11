@@ -266,9 +266,9 @@ export default {
           this.pressedTimestampDiff = this.playingTimestamp - Date.now(); //correct key
           //this.$refs.scoreLog.value += "Correct! Diff: " + this.pressedTimestampDiff + "\n";
           var bpmInterval = this.bpmThreshold-this.bpm;
-          console.log("limit " +bpmInterval/10);
-          console.log("diff " +Math.abs(this.pressedTimestampDiff));
-          if(Math.abs(this.pressedTimestampDiff) <= bpmInterval/10) {
+          //console.log("limit " +bpmInterval/10);
+          //console.log("diff " +Math.abs(this.pressedTimestampDiff));
+          if(Math.abs(this.pressedTimestampDiff) <= bpmInterval/9) {
             this.$refs.scoreLog.value += "Excellent!" + "\n";
             this.totalScore += 100
           } else if (Math.abs(this.pressedTimestampDiff) <= (bpmInterval/6)) {
@@ -506,8 +506,6 @@ button:focus { outline:none }
 }
 
 /* GRID */
-
-
 .grid-header {
   background-color: rgb(32,34,36);
   height: 60px;
