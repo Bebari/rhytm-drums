@@ -7,6 +7,10 @@ import router from './router'
 import 'vue-awesome/icons'
 import Icon from 'vue-awesome/components/Icon'
 
+import VueSwal from 'vue-swal'
+
+Vue.use(VueSwal)
+
 Vue.component('icon', Icon)
 
 Vue.config.productionTip = false
