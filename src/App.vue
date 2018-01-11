@@ -24,4 +24,10 @@ body {
   color: #2c3e50;
   margin-top: 30px;
 }
+
+h2 {
+      font-size: 3em;
+    text-transform: uppercase;
+    margin: 5px;
+}
 </style>

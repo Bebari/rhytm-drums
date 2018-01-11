@@ -22,7 +22,7 @@
       </div>
       <div class="col-5">
         <div class="col-16">
-          <span style="width:250px;">Current Score: {{totalDiff}}</span>
+          <span style="width:250px;">Current Score: {{totalScore}}</span>
         </div>
         <div class="col-16">
           <textarea ref="scoreLog" readonly class="event-log"></textarea>
@@ -37,7 +37,7 @@
           <span class="message" v-if="!playMode">Practice your beats or create some new ones.</span>
           </div>
           <div class="col-4" style="text-align:right;">
-            <span style="color:#3187da; font-weight:bold;">Top Score: </span> <span style="color:white">{{totalDiff}}</span>
+            <span style="color:#3187da; font-weight:bold;">Top Score: </span> <span style="color:white">{{totalScore}}</span>
           </div>
       </div>
       <div class="grid-header">
@@ -112,7 +112,7 @@ export default {
       keyCodes: null,
       playingTimestamp: 0,
       pressedTimestampDiff: 0,
-      totalDiff: 0,
+      totalScore: 0,
       activeSounds: [],
       repetitions: 2,
       repetitionsRemaining: this.repetitions,
@@ -161,7 +161,7 @@ export default {
 
       if (stopPlayer) {
         this.$refs.scoreLog.value = "";
-        this.totalDiff = 0;
+        this.totalScore = 0;
         this.stopPlayer();
         if (this.playMode)
           this.playPhase++;
@@ -199,10 +199,15 @@ export default {
             if (self.playPhase > 2) { //end of preparations
               setTimeout(function() {                 
                   if(self.pressedTimestampDiff == 0) { //user did not press during interval
-                    self.totalDiff += bpmInterval
-                    self.$refs.scoreLog.value += "Missed!\\\n";
-                  } else
-                    self.totalDiff += Math.abs(self.pressedTimestampDiff);
+                    //self.totalScore += bpmInterval;
+                    if (self.activeSounds.length) {
+                      self.$refs.scoreLog.value += "Missed!\n";
+                    } else {
+                      self.$refs.scoreLog.value += "Pause...\n";
+                      self.totalScore += 50;
+                    }
+                  }
+
                   self.pressedTimestampDiff = 0;
                   self.activeSounds = [];
               }, bpmInterval-10); //-10 to ensure execution before interval
@@ -246,10 +251,23 @@ export default {
         var sIx = sounds.findIndex(s => s.keyCode == e.keyCode);
         if(this.activeSounds.includes(sIx)) { //TODO: currently works when AT LEAST one correct key
           this.pressedTimestampDiff = this.playingTimestamp - Date.now(); //correct key
-          this.$refs.scoreLog.value += "Correct! Diff: " + this.pressedTimestampDiff + "\\\n";
+          //this.$refs.scoreLog.value += "Correct! Diff: " + this.pressedTimestampDiff + "\n";
+          var bpmInterval = this.bpmThreshold-this.bpm;
+          console.log("limit " +bpmInterval/10);
+          console.log("diff " +Math.abs(this.pressedTimestampDiff));
+          if(Math.abs(this.pressedTimestampDiff) <= bpmInterval/10) {
+            this.$refs.scoreLog.value += "Excellent!" + "\n";
+            this.totalScore += 100
+          } else if (Math.abs(this.pressedTimestampDiff) <= (bpmInterval/6)) {
+            this.$refs.scoreLog.value += "Good!" + "\n";
+            this.totalScore += 70
+          } else {
+            this.$refs.scoreLog.value += "Not so good..." + "\n";
+            this.totalScore += 40
+          }
         } else {
           this.pressedTimestampDiff = (this.bpmThreshold-this.bpm); //wrong key 
-          this.$refs.scoreLog.value += "Wrong Key! \\\n";
+          this.$refs.scoreLog.value += "Wrong Key! \n";
         }
       }
 
@@ -405,6 +423,7 @@ button:focus { outline:none }
   height: 65px;
   margin-top: 5px;
   box-sizing: border-box;
+  font-size: 1.3em;
 }
 
 .game-header span {
@@ -525,14 +544,23 @@ button:focus { outline:none }
   width:60px;
   display:inline-block;
 }
+.grid-touch {
+      padding-top: 0px;
+}
 .beatButton {
     border: 5px solid black;
-    width: 70px;
-    height: 70px;
-    margin: 10px 20px;
-    display:inline-block;
-    color:aliceblue;
-    background-color:#5e8345;
+    width: 80px;
+    height: 80px;
+    margin: 0px 20px;
+    display: inline-block;
+    color: aliceblue;
+    background-color: dodgerblue;
+    border-radius: 60px;
+    box-sizing: border-box;
+    padding-top: 24px;
+    /* padding-left: 0px; */
+    text-align: center;
+    font-weight: bold;
 }
 #BeatButton:active {
     background-color:#232540;
