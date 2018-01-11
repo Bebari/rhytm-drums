@@ -1,4 +1,5 @@
 <template>
+
   <div class="DrumGrid">
     <div class="game-header">
       <div class="col-11">
@@ -9,7 +10,7 @@
         <div class="game-control col-12" style="margin-top:5px">
           <span>Select Track: </span>
           <select v-model="selected_beat">
-            <option>test</option>
+            <option>Select track</option>
             <option v-for="beat in beats" v-bind:value="beat.id" v-bind:key="beat"> {{ beat.name }} </option>
           </select>
           <button class="trackBtn" title="Load Track" v-on:click="loadBeat">Load</button>
@@ -37,7 +38,7 @@
           <span class="message" v-if="!playMode">Practice your beats or create some new ones.</span>
           </div>
           <div class="col-4" style="text-align:right;">
-            <span style="color:#3187da; font-weight:bold;">Top Score: </span> <span style="color:white">{{totalDiff}}</span>
+            <span style="color:#3187da; font-weight:bold;">Top Score: </span> <span style="color:white">{{topScore}}</span>
           </div>
       </div>
       <div class="grid-header">
@@ -92,7 +93,6 @@
       </div>
     </div>
   </div>
-  
 </template>
 
 <script>
@@ -123,12 +123,13 @@ export default {
                  "Preparation phase. Get ready to play!",
                  "Go, Go, Go, ..."],
       // API data
+      api_url: "https://drums-api.herokuapp.com/api",
       user_id: 1,
       beat_name: "",
       selected_beat: 0,
       beats: [],
       currentScore: 0,
-      topScore: 0,
+      topScore: "",
       topScores: []
     }
   },
@@ -215,15 +216,27 @@ export default {
 
               if (self.playPhase > 2) {
                 setTimeout(function() {
-                  if (self.repetitionsRemaining == 0)
+                  if (self.repetitionsRemaining == 0) {
                     self.stopPlayer();
+                    if(self.totalDiff < self.topScore) {
+                      self.successPopup();
+                      self.saveScore();
+                    }
+                    else if(self.topScore == undefined) {
+                      self.successPopup();
+                      self.saveScore();
+                    }
+                    else {
+                      self.failedPopup();
+                    }
+                  }
                   self.repetitionsRemaining--;
                 },bpmInterval-10);
               }
             } else {
               self.counter++;
             }
-          
+
       }, bpmInterval); //goes from 200 to 600 based on bpmThreshold (TODO: might want to set BPM for each track)
     },
     stopPlayer: function () { 
@@ -266,12 +279,13 @@ export default {
       audio.play();
     },
     loadBeat: function(event) {
-      this.$http.get('http://drums.test/api/beats/'+this.selected_beat).then(function (response) {
+      this.$http.get(this.api_url+'/beats/'+this.selected_beat).then(function (response) {
         this.beat_name = response.data.name;
         this.numSteps = response.data.steps;
         this.bpm = response.data.bpm;
         this.repetitions = response.data.repeats; 
         this.tracks = JSON.parse(response.data.layout);
+        this.getScore();
       });
     },
     saveBeat: function(event) {
@@ -282,33 +296,44 @@ export default {
         "repeats":this.repetitions,
         "layout":this.tracks}
 
-      this.$http.post('http://drums.test/api/beats', beat).then(function (response) {
+      this.$http.post(this.api_url+'/beats', beat).then(function (response) {
         console.log(response);
       });
     },
     saveScore: function(event) {
-      this.$http.get('http://drums.test/api/scores/'+this.selected_beat+'/'+this.user_id).then(function (response) {
+      /*
+      this.$http.get(this.api_url+'/scores/'+this.selected_beat+'/'+this.user_id).then(function (response) {
         this.topScore = response.data;
       });
-
-      if(this.currentScore > this.topScore) {
+      */
         // Popup: Congrats, you have a new top score!
-        var score_json = '{"beat_id":'+this.selected_beat+',"user_id":'+this.user_id+',"score:"'+this.currentScore+'}';
-          this.$http.post('http://drums.test/api/scores', score_json).then(function (response) {
-            console.log(response);
-          });
-      }
+      this.topScore = this.totalDiff;        
+      var score = {
+        "beat_id":this.selected_beat,
+        "user_id":this.user_id,
+        "score":this.totalDiff
+        
+        }
+        this.$http.post(this.api_url+'/scores', score).then(function (response) {
+          console.log(response);
+        });
     },
     getScore: function(event) {
-      this.$http.get('http://drums.test/api/scores/'+this.selected_beat+'/'+this.user_id).then(function (response) {
-        this.topScore = response.data;
+      this.$http.get(this.api_url+'/scores/'+this.selected_beat).then(function (response) {
+        this.topScore = response.data.score;
       });
     },
     getTopScores: function(event) {
-      this.$http.get('http://drums.test/api/scores/'+this.selected_beat).then(function (response) {
+      this.$http.get(this.api_url+'/scores/'+this.selected_beat).then(function (response) {
         this.topScores = response.data;
       });
     },
+    successPopup: function(event) {
+      this.$swal("Good job!", "You have achieved a new Top Score!", "success");
+    },
+    failedPopup: function(event) {
+      this.$swal("Sorry bud", "Try again to beat the Top Score!", "error");
+    }
   },
   created: function() {
     this.$http.get('/static/data/keyCodes.json').then(function (response) {
@@ -319,7 +344,7 @@ export default {
       this.tracks = response.data;
     });
 
-    this.$http.get('http://drums.test/api/beats').then(function (response) {
+    this.$http.get(this.api_url+'/beats').then(function (response) {
       this.beats = response.data;
     });
     window.addEventListener('keydown', this.onKeyDown);
@@ -638,5 +663,4 @@ button:focus { outline:none }
     margin: 0px 10px 20px 10px;
     padding: 10px 10px 13px 10px;
 }
-
 </style>
