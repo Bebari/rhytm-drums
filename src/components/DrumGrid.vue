@@ -38,7 +38,7 @@
           <span class="message" v-if="!playMode">Practice your beats or create some new ones.</span>
           </div>
           <div class="col-4" style="text-align:right;">
-            <span style="color:#3187da; font-weight:bold;">Top Score: </span> <span style="color:white">{{totalScore}}</span>
+            <span style="color:#3187da; font-weight:bold;">Top Score: </span> <span style="color:white">{{topScore}}</span>
           </div>
       </div>
       <div class="grid-header">
@@ -223,7 +223,7 @@ export default {
                 setTimeout(function() {
                   if (self.repetitionsRemaining == 0) {
                     self.stopPlayer();
-                    if(self.totalDiff < self.topScore) {
+                    if(self.totalScore > self.topScore) {
                       self.successPopup();
                       self.saveScore();
                     }
@@ -325,12 +325,11 @@ export default {
       });
       */
         // Popup: Congrats, you have a new top score!
-      this.topScore = this.totalDiff;        
+      this.topScore = this.totalScore;        
       var score = {
         "beat_id":this.selected_beat,
         "user_id":this.user_id,
-        "score":this.totalDiff
-        
+        "score":this.totalScore
         }
         this.$http.post(this.api_url+'/scores', score).then(function (response) {
           console.log(response);
